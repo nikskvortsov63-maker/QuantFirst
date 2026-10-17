@@ -1,6 +1,6 @@
 # QuantFirst
 
-Download one year of S&P 500 index (`^GSPC`) data from Yahoo Finance and plot its daily closing price.
+Download 50 years of S&P 500 index (`^GSPC`) data from Yahoo Finance and plot daily closing prices, simple returns, and log returns. Returns are decimals: 0.01 means 1%.
 
 ## Setup (PowerShell)
 
