@@ -58,7 +58,7 @@ def plot_returns():
 
     # McLeod-Li: Ljung-Box test on squared, mean-centered returns
 
-    squared_returns = (returns - returns.mean()) ** 2
+    squared_returns = returns * returns
     mcleod_li = acorr_ljungbox(squared_returns, lags=[50], return_df=True).loc[50]
 
     plot_acf(squared_returns, lags=50, alpha=0.05,
