@@ -48,9 +48,27 @@ def plot_returns():
     axes[3].plot(msft_log_returns.index, msft_log_returns)
     axes[3].set_ylabel("MSFT Log return")
 
-    # Autocorrelation and Ljung-Box test (jointly tests lags 1 through 50)
+    # Histograms
 
     returns = sp_log_returns["^GSPC"].dropna()
+
+    plt.figure()
+    plt.hist(returns, bins=100, density=True)
+    plt.title("S&P 500 Log Returns PDF Estimate")
+    plt.xlabel("Log return")
+    plt.ylabel("Probability density")
+
+    plt.figure()
+    plt.hist(returns, bins=30, density=True, cumulative=True, histtype="step")
+    plt.title("S&P 500 Log Returns Empirical CDF")
+    plt.xlabel("Log return")
+    plt.ylabel("Cumulative probability")
+
+    
+
+    # Autocorrelation and Ljung-Box test (jointly tests lags 1 through 50)
+
+
     ljung_box = acorr_ljungbox(returns, lags=[50], return_df=True).loc[50]
 
     plot_acf(returns, lags=50, alpha=0.05,

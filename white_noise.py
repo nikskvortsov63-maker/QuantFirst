@@ -5,9 +5,21 @@ from statsmodels.stats.diagnostic import acorr_ljungbox
 
 
 def plot_noise():
-    noise = np.random.default_rng().normal(size=1000)
+    noise = np.random.default_rng().normal(loc=0, scale=1, size=1000)
     plt.figure()
     plt.plot(noise)
+
+    plt.figure()
+    plt.hist(noise, bins=30, density=False)
+    plt.title("White Noise PDF Estimate")
+    plt.xlabel("Value")
+    plt.ylabel("Probability density")
+
+    plt.figure()
+    plt.hist(noise, bins=30, density=True, cumulative=True, histtype="step")
+    plt.title("White Noise Empirical CDF")
+    plt.xlabel("Value")
+    plt.ylabel("Cumulative probability")
 
     # Autocorrelation and Ljung-Box test (jointly tests lags 1 through 50)
     ljung_box = acorr_ljungbox(noise, lags=[50], return_df=True).loc[50]
