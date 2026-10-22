@@ -83,3 +83,7 @@ def plot_returns():
              title=f"S&P 500 Squared Centered Log Returns ACF\nMcLeod-Li Q(50)={mcleod_li['lb_stat']:.2f}, p={mcleod_li['lb_pvalue']:.3g}")
 
     plt.show()
+
+
+if __name__ == "__main__":
+    plot_returns()
