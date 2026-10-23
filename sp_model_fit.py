@@ -48,6 +48,7 @@ def fit_sp_arma(close, p=2, q=2):
 
 def fit_sp_garch(residuals):
     # Residuals should use the same percentage-point units as the ARMA fit.
+    # Consider Student-t errors (dist="t") for heavy tails; also update forecast noise.
     model = arch_model(residuals, mean="Zero", vol="GARCH", p=1, q=1, dist="t")
     fit = model.fit(disp="off")
     if fit.convergence_flag != 0:
@@ -91,23 +92,26 @@ def forecast_sp_prices(arma_fit, garch_fit, last_close, days=500):
     omega = garch_fit.params["omega"]
     alpha = garch_fit.params["alpha[1]"]
     beta = garch_fit.params["beta[1]"]
-    nu = garch_fit.params["nu"]
     variance = float(np.asarray(garch_fit.conditional_volatility)[-1]) ** 2
     price = float(last_close)
     closing_prices = []
 
     for day in range(days):
+        # ARMA: m[t] = mu + sum(phi[i] * (r[t-i] - mu)) + sum(theta[j] * e[t-j])
         return_mean = mean
         for lag, coefficient in enumerate(arma_fit.arparams, start=1):
             return_mean += coefficient * (returns[-lag] - mean)
         for lag, coefficient in enumerate(arma_fit.maparams, start=1):
             return_mean += coefficient * errors[-lag]
 
+        # GARCH(1,1): sigma[t]^2 = omega + alpha * e[t-1]^2 + beta * sigma[t-1]^2
         variance = omega + alpha * errors[-1] ** 2 + beta * variance
-        # Standardize Student-t noise to variance 1.
-        noise = np.random.standard_t(nu) * np.sqrt((nu - 2) / nu)
+        # z[t] ~ N(0, 1). Student-t noise may be considered for heavy tails.
+        noise = np.random.normal(loc=0, scale=1)
+        # e[t] = sigma[t] * z[t]; r[t] = m[t] + e[t]
         error = np.sqrt(variance) * noise
         log_return = return_mean + error
+        # r[t] = 100 * log(P[t] / P[t-1]), so P[t] = P[t-1] * exp(r[t] / 100).
         price = price * np.exp(log_return / 100)
 
         returns.append(log_return)
@@ -117,7 +121,7 @@ def forecast_sp_prices(arma_fit, garch_fit, last_close, days=500):
     return np.array(closing_prices)
 
 
-def plot_sp_forecasts_vs_actual(arma_fit, garch_fit, close_prices, actual_close, num_simulations=100, days=500):
+def plot_sp_forecasts_vs_actual(arma_fit, garch_fit, close_prices, actual_close, num_simulations=1000, days=500):
     last_close = close_prices.iloc[-1]
     actual_close = actual_close.dropna()
     actual_close = actual_close.loc[actual_close.index > close_prices.index[-1]].iloc[:days]
@@ -139,9 +143,9 @@ def plot_sp_forecasts_vs_actual(arma_fit, garch_fit, close_prices, actual_close,
 
 
 if __name__ == "__main__":
-    data = yf.download("^GSPC", start="2017-01-01", auto_adjust=False, progress=False)
+    data = yf.download("^GSPC", start="2012-01-01", auto_adjust=False, progress=False)
     all_close_prices = data["Close"]["^GSPC"].dropna()
-    close_prices = all_close_prices.loc["2017":"2020"]
+    close_prices = all_close_prices.loc["2012":"2016"]
     actual_close = all_close_prices.loc[all_close_prices.index > close_prices.index[-1]]
 
     arma_fit = fit_sp_arma(close_prices)
