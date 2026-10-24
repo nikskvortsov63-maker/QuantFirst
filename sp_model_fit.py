@@ -49,7 +49,7 @@ def fit_sp_arma(close, p=2, q=2):
 def fit_sp_garch(residuals):
     # Residuals should use the same percentage-point units as the ARMA fit.
     # Consider Student-t errors (dist="t") for heavy tails; also update forecast noise.
-    model = arch_model(residuals, mean="Zero", vol="GARCH", p=1, q=1, dist="t")
+    model = arch_model(residuals, mean="Zero", vol="GARCH", p=1, q=1, dist="normal")
     fit = model.fit(disp="off")
     if fit.convergence_flag != 0:
         raise RuntimeError("GARCH fit did not converge")
