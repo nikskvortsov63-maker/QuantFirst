@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import yfinance as yf
+from scipy import stats
 from statsmodels.graphics.tsaplots import plot_acf
+from statsmodels.graphics.gofplots import qqplot
 from statsmodels.stats.diagnostic import acorr_ljungbox
 
 
@@ -65,6 +67,10 @@ def plot_returns():
     plt.ylabel("Cumulative probability")
 
     
+
+    # Compare standardized S&P 500 log returns with a fitted Student-t distribution.
+    qqplot(returns, dist=stats.t, fit=True, line="45")
+    plt.title("S&P 500 Log Returns: Student-t Q-Q Plot")
 
     # Autocorrelation and Ljung-Box test (jointly tests lags 1 through 50)
 
