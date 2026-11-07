@@ -150,19 +150,25 @@ def plot_options(
     print(f"\nBSM Greeks as of {stock.index[-1]:%Y-%m-%d} (per share; European approximation)")
     print(greeks.round(6))
 
-    tree_call, tree_put = binomial_european(
-        float(stock["Close"].iloc[-1]), 345, float(time_remaining[-1]),
-        float(volatility.iloc[-1] / 100), risk_free_rate, dividend_yield,
-    )
+    tree_calls = []
+    tree_puts = []
+    for day in range(len(stock)):
+        tree_call, tree_put = binomial_european(
+            float(stock["Close"].iloc[day]), 345, float(time_remaining[day]),
+            float(volatility.iloc[day] / 100), risk_free_rate, dividend_yield,
+        )
+        tree_calls.append(tree_call)
+        tree_puts.append(tree_put)
+
     comparison = pd.DataFrame({
         "BSM": [float(bsm_call.iloc[-1]), float(bsm_put.iloc[-1])],
-        "European tree (500 steps)": [tree_call, tree_put],
+        "European tree (500 steps)": [tree_calls[-1], tree_puts[-1]],
     }, index=["Call", "Put"])
     print("\nEuropean pricing comparison (USD/share):")
     print(comparison.round(6))
 
     fig, axes = plt.subplots(4, 1, sharex=True)
-    fig.suptitle(f"BSM comparison: assumed r={risk_free_rate:.1%}, q={dividend_yield:.1%}")
+    fig.suptitle(f"European pricing comparison: assumed r={risk_free_rate:.1%}, q={dividend_yield:.1%}")
 
     axes[0].plot(stock.index, stock["Close"])
     axes[0].set_title("AAPL Stock")
@@ -170,12 +176,14 @@ def plot_options(
 
     axes[1].plot(call.index, call["Close"], label="Observed close")
     axes[1].plot(stock.index, bsm_call, label="BSM European estimate (historical vol)")
+    axes[1].plot(stock.index, tree_calls, linestyle="--", label="European tree (500 steps)")
     axes[1].legend()
     axes[1].set_title(f"AAPL $345 Call | Expiry 2026-11-27 | {call_symbol}")
     axes[1].set_ylabel("Close (USD/share)")
 
     axes[2].plot(put.index, put["Close"], label="Observed close")
     axes[2].plot(stock.index, bsm_put, label="BSM European estimate (historical vol)")
+    axes[2].plot(stock.index, tree_puts, linestyle="--", label="European tree (500 steps)")
     axes[2].legend()
     axes[2].set_title(f"AAPL $345 Put | Expiry 2026-11-27 | {put_symbol}")
     axes[2].set_ylabel("Close (USD/share)")
