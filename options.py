@@ -18,6 +18,38 @@ def black_scholes_merton(stock_price, strike, years, volatility, rate, dividend_
     return call, put
 
 
+def black_scholes_merton_greeks(stock_price, strike, years, volatility, rate, dividend_yield):
+    if years <= 0 or volatility <= 0:
+        raise ValueError("Greeks require positive time to expiry and volatility")
+
+    sqrt_time = np.sqrt(years)
+    d1 = (np.log(stock_price / strike) + (rate - dividend_yield + volatility ** 2 / 2) * years) / (volatility * sqrt_time)
+    d2 = d1 - volatility * sqrt_time
+    stock_discount = np.exp(-dividend_yield * years)
+    strike_discount = np.exp(-rate * years)
+    density = norm.pdf(d1)
+
+    call_delta = stock_discount * norm.cdf(d1)
+    put_delta = stock_discount * (norm.cdf(d1) - 1)
+    gamma = stock_discount * density / (stock_price * volatility * sqrt_time)
+    vega = stock_price * stock_discount * density * sqrt_time / 100
+
+    time_decay = -stock_price * stock_discount * density * volatility / (2 * sqrt_time)
+    call_theta = (time_decay - rate * strike * strike_discount * norm.cdf(d2)
+                  + dividend_yield * stock_price * stock_discount * norm.cdf(d1)) / 365
+    put_theta = (time_decay + rate * strike * strike_discount * norm.cdf(-d2)
+                 - dividend_yield * stock_price * stock_discount * norm.cdf(-d1)) / 365
+
+    call_rho = strike * years * strike_discount * norm.cdf(d2) / 100
+    put_rho = -strike * years * strike_discount * norm.cdf(-d2) / 100
+
+    # Per share: theta per calendar day; vega/rho per 1 percentage-point change.
+    return pd.DataFrame({
+        "Call": [call_delta, gamma, call_theta, vega, call_rho],
+        "Put": [put_delta, gamma, put_theta, vega, put_rho],
+    }, index=["Delta", "Gamma", "Theta / day", "Vega / 1pp IV", "Rho / 1pp rate"])
+
+
 def plot_options(risk_free_rate=0.04, dividend_yield=0.005):
     call_symbol = "AAPL261127C00345000"
     put_symbol = "AAPL261127P00345000"
@@ -42,6 +74,13 @@ def plot_options(risk_free_rate=0.04, dividend_yield=0.005):
     bsm_call, bsm_put = black_scholes_merton(
         stock["Close"], 345, years, volatility / 100, risk_free_rate, dividend_yield,
     )
+
+    greeks = black_scholes_merton_greeks(
+        float(stock["Close"].iloc[-1]), 345, float(years[-1]),
+        float(volatility.iloc[-1] / 100), risk_free_rate, dividend_yield,
+    )
+    print(f"\nBSM Greeks as of {stock.index[-1]:%Y-%m-%d} (per share; European approximation)")
+    print(greeks.round(6))
 
     fig, axes = plt.subplots(4, 1, sharex=True)
     fig.suptitle(f"BSM comparison: assumed r={risk_free_rate:.1%}, q={dividend_yield:.1%}")
